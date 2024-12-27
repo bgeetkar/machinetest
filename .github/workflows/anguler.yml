@@ -44,7 +44,7 @@ jobs:
     - name: Deploy to S3 bucket
       uses: jakejarvis/s3-sync-action@v0.4.0
       with:
-        args: --acl public-read --delete
+        args: --delete ./dist/machinetest/
       env:
         AWS_S3_BUCKET: "anguler-s3-static-website"
         AWS_REGION: "us-east-1"
