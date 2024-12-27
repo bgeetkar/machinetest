@@ -22,24 +22,13 @@ jobs:
       run: npm install
 
     - name: Build Angular app
-      run: npm run build 
+      run: npm run build -- --output-path=dist/angular-app
 
     - name: List the dir 
       run: |
         ls -ltr
         cd dist
-        ls -ltr
-
-    # - name: Deploy to S3 bucket
-    #   uses: jakejarvis/s3-sync-action@v0.4.0
-    #   with:
-    #     args: --acl public-read --delete
-    #   env:
-    #     AWS_S3_BUCKET: "anguler-s3-static-website" 
-    #     AWS_REGION: "us-east-1"  
-    #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    #     SOURCE_DIR: "dist/machinetest"  
+        ls -ltr 
 
     - name: Create CloudFront distribution
       id: create_cloudfront
@@ -51,16 +40,27 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
-        
+
     - name: Deploy to S3 bucket
       uses: jakejarvis/s3-sync-action@v0.4.0
       with:
-        args: --delete 
+        args: --acl public-read --delete
       env:
-        AWS_S3_BUCKET: "anguler-s3-static-website"
-        AWS_REGION: "us-east-1"
+        AWS_S3_BUCKET: "anguler-s3-static-website" 
+        AWS_REGION: "us-east-1"  
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        SOURCE_DIR: "dist/angular-app" 
+        
+    # - name: Deploy to S3 bucket
+    #   uses: jakejarvis/s3-sync-action@v0.4.0
+    #   with:
+    #     args: --delete 
+    #   env:
+    #     AWS_S3_BUCKET: "anguler-s3-static-website"
+    #     AWS_REGION: "us-east-1"
+    #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     - name: Create CloudFront invalidation
       run: aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
