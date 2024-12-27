@@ -3,7 +3,7 @@ name: Deploy Angular App to S3 Bucket and CloudFront
 on:
   push:
     branches:
-      - angular-application 
+      - angular-application  
 
 jobs:
   build:
@@ -22,31 +22,21 @@ jobs:
       run: npm install
 
     - name: Build Angular app
-      run: npm run build
-
-    - name: Install AWS CLI
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y awscli
-
-    - name: Configure AWS region
-      run: aws configure set region ap-southeast-1
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: npm run build --prod  # Ensure you're building for production
 
     - name: Deploy to S3 bucket
       uses: jakejarvis/s3-sync-action@v0.4.0
       with:
         args: --acl public-read --delete
       env:
-        AWS_S3_BUCKET: "dgeetkar-test-bucket"
-        AWS_REGION: "ap-southeast-1"
+        AWS_S3_BUCKET: "dgeetkar-test-bucket"  # Your S3 bucket name
+        AWS_REGION: "ap-southeast-1"  # Your AWS region
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        SOURCE_DIR: "./dist/your-app-name"  # Specify the exact folder to upload from the dist directory
 
     - name: Create CloudFront invalidation
-      run: aws cloudfront create-invalidation --distribution-id "YOUR_DISTRIBUTION_ID" --paths "/*"
+      run: aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
