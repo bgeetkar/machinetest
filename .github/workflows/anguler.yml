@@ -40,6 +40,17 @@ jobs:
     #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
     #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     #     SOURCE_DIR: "dist/machinetest"  
+
+    - name: Create CloudFront distribution
+      id: create_cloudfront
+      run: |
+        DISTRIBUTION_ID=$(aws cloudfront create-distribution --origin-domain-name anguler-s3-static-website.s3.amazonaws.com \
+        --default-root-object index.html --output json | jq -r '.Distribution.Id')
+        echo "DISTRIBUTION_ID=$DISTRIBUTION_ID" >> $GITHUB_ENV
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
         
     - name: Deploy to S3 bucket
       uses: jakejarvis/s3-sync-action@v0.4.0
@@ -52,13 +63,9 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     - name: Create CloudFront invalidation
-      run: aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
+      run: aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-    # - name: Create CloudFront invalidation
-    #   run: aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
-    #   env:
-    #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
