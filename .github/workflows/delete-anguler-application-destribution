@@ -1,0 +1,62 @@
+name: Delete CloudFront Distribution and S3 Content
+
+on:
+  workflow_dispatch:
+    inputs:
+      BUCKET_NAME:
+        description: 'S3 Bucket Name to Delete'
+        required: true
+        default: 'example-bucket'
+    inputs:
+      BUCKET_NAME:
+        description: 'Cloudfront distribution id to Delete'
+        required: true
+        default: 'JZHFUEGRFBCKGCKE'
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-southeast-1
+
+    # 1. Disable CloudFront Distribution
+    - name: Disable CloudFront Distribution
+      run: |
+        aws cloudfront update-distribution --id ${{ inputs.CLOUDFRONT_DISTRIBUTION_ID }} --distribution-config "$(aws cloudfront get-distribution-config --id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} | jq '.DistributionConfig | .Enabled=false | .CallerReference="DELETE_'$(date +%s)'"')" --if-match $(aws cloudfront get-distribution-config --id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} | jq -r '.ETag')
+
+    # 2. Wait until CloudFront Distribution is Disabled
+    - name: Wait until CloudFront Distribution is Disabled
+      run: |
+        while true; do
+          STATUS=$(aws cloudfront get-distribution --id ${{ inputs.CLOUDFRONT_DISTRIBUTION_ID }} | jq -r '.Distribution.Status')
+          echo "Current Status: $STATUS"
+          if [ "$STATUS" == "Deployed" ]; then
+            echo "CloudFront Distribution is disabled."
+            break
+          fi
+          sleep 10
+        done
+
+    # 3. Delete CloudFront Distribution
+    - name: Delete CloudFront Distribution
+      run: |
+        aws cloudfront delete-distribution --id ${{ inputs.CLOUDFRONT_DISTRIBUTION_ID }} --if-match $(aws cloudfront get-distribution-config --id ${{ inputs.CLOUDFRONT_DISTRIBUTION_ID }} | jq -r '.ETag')
+
+    # 4. Empty S3 Bucket
+    - name: Empty S3 Bucket
+      run: |
+        aws s3 rm s3://${{ inputs.BUCKET_NAME }}/ --recursive
+
+    # 5. Delete S3 Bucket
+ #   - name: Delete S3 Bucket
+ #      run: |
+ #       aws s3api delete-bucket --bucket ${{ inputs.BUCKET_NAME }}
